@@ -21,7 +21,7 @@ import type {
 } from "@/lib/types";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081";
 
 export const apiSlice = createApi({
   reducerPath: "api",

@@ -28,12 +28,18 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       SPRING_JPA_SHOW_SQL: "false"
       SPRING_FLYWAY_ENABLED: "true"
+      APP_JWT_SECRET: ${APP_JWT_SECRET}
+      FRONTEND_ALLOWED_ORIGINS: ${FRONTEND_ALLOWED_ORIGINS}
       SERVER_PORT: 8080
     ports:
       - "8081:8080"
 
   trs-frontend:
     image: timer-registration-frontend:1.0.0
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL}
     container_name: trs-frontend
     depends_on:
       - trs-api

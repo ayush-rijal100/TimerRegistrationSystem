@@ -22,7 +22,7 @@ The frontend reads the backend URL from:
 Expected value:
 
 ```properties
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8081
 ```
 
 ## Run Locally

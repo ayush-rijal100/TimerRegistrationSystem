@@ -6,17 +6,17 @@ INSERT INTO roles (name) VALUES
 ON CONFLICT (name) DO NOTHING;
 
 -- Users (sample)
--- password_hash is placeholder for now (we'll replace with real BCrypt later)
+-- bcrypt hash below is for password: password123
 INSERT INTO users (full_name, email, password_hash, role_id, is_active)
-SELECT 'Emp One', 'emp1@example.com', 'TEMP_HASH', r.id, true FROM roles r WHERE r.name='EMPLOYEE'
+SELECT 'Emp One', 'emp1@example.com', '$2a$10$loZjWV12i6PgTJZgJw9PqOpWhIhRk8RpokB9g/U1aFJR1BcABdIJ.', r.id, true FROM roles r WHERE r.name='EMPLOYEE'
 ON CONFLICT (email) DO NOTHING;
 
 INSERT INTO users (full_name, email, password_hash, role_id, is_active)
-SELECT 'Manager One', 'manager1@example.com', 'TEMP_HASH', r.id, true FROM roles r WHERE r.name='MANAGER'
+SELECT 'Manager One', 'manager1@example.com', '$2a$10$loZjWV12i6PgTJZgJw9PqOpWhIhRk8RpokB9g/U1aFJR1BcABdIJ.', r.id, true FROM roles r WHERE r.name='MANAGER'
 ON CONFLICT (email) DO NOTHING;
 
 INSERT INTO users (full_name, email, password_hash, role_id, is_active)
-SELECT 'Admin One', 'admin1@example.com', 'TEMP_HASH', r.id, true FROM roles r WHERE r.name='ADMIN'
+SELECT 'Admin One', 'admin1@example.com', '$2a$10$loZjWV12i6PgTJZgJw9PqOpWhIhRk8RpokB9g/U1aFJR1BcABdIJ.', r.id, true FROM roles r WHERE r.name='ADMIN'
 ON CONFLICT (email) DO NOTHING;
 
 -- Projects (sample)

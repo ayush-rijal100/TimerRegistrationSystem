@@ -3,6 +3,8 @@ package com.sireto.timer_registration_api.dto;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -14,6 +16,7 @@ import java.time.LocalDate;
 public class TimeEntryRequest {
 
     @NotNull
+    @Positive
     private Long projectId;
 
     @NotNull
@@ -24,5 +27,6 @@ public class TimeEntryRequest {
     @DecimalMax(value = "24.00")
     private BigDecimal hours;
 
+    @Size(max = 500)
     private String notes;
 }

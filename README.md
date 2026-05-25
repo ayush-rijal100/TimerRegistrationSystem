@@ -40,6 +40,9 @@ Copy-Item .env.release.example .env.release
 POSTGRES_DB=trs_db
 POSTGRES_USER=trs_user
 POSTGRES_PASSWORD=change_this_to_a_strong_password
+APP_JWT_SECRET=change_this_to_a_long_random_jwt_secret
+FRONTEND_ALLOWED_ORIGINS=http://localhost:3001,http://localhost:3000
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8081
 ```
 
 Notes:
@@ -103,32 +106,9 @@ npm install
 npm run dev
 ```
 
-## GitHub Push Checklist
-
-Commit:
-- source code
-- `docker-compose.release.yml`
-- `.env.release.example`
-- SQL files in `db/`
-- `.gitignore`, `.gitattributes`, `README.md`
-
-Do NOT commit:
-- `.env.release`
-- `frontend/.env.local`
-- `node_modules/`
-- build outputs (`target/`, `build/`, `.next/`)
-- local DB data/volumes
-
-Useful check before commit:
-
-```powershell
-git status
-```
-
 ## Security Notes
 
 - Never hardcode secrets in `docker-compose` or source code.
 - Rotate credentials immediately if a secret was pushed by mistake.
 - Use strong passwords in `.env.release`.
 - Use versioned Docker image tags (for example `1.0.0`) instead of only `latest`.
-
