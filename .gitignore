@@ -51,3 +51,10 @@ pgdata/
 
 # ----Docs folder----
 docs/
+
+
+# docker
+.docker/
+docker-data/
+docker-compose.override.yml
+*.tar
