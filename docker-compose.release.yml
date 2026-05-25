@@ -3,9 +3,9 @@ services:
     image: postgres:16-alpine
     container_name: trs-db
     environment:
-      POSTGRES_DB: trs_db
-      POSTGRES_USER: trs_user
-      POSTGRES_PASSWORD: trs_pass
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5433:5432"
     volumes:
@@ -23,9 +23,9 @@ services:
       trs-db:
         condition: service_healthy
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://trs-db:5432/trs_db
-      SPRING_DATASOURCE_USERNAME: trs_user
-      SPRING_DATASOURCE_PASSWORD: trs_pass
+      SPRING_DATASOURCE_URL: jdbc:postgresql://trs-db:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       SPRING_JPA_SHOW_SQL: "false"
       SPRING_FLYWAY_ENABLED: "true"
       SERVER_PORT: 8080

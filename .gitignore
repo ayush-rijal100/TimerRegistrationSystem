@@ -52,9 +52,27 @@ pgdata/
 # ----Docs folder----
 docs/
 
+# secrets
+.env.release
+.env.*
+!.env.example
+!.env.*.example
 
-# docker
-.docker/
-docker-data/
-docker-compose.override.yml
-*.tar
+# frontend local env
+frontend/.env.local
+
+# dependencies
+node_modules/
+frontend/node_modules/
+
+# build output
+**/target/
+**/build/
+frontend/.next/
+
+# local DB/docker data
+db_data/
+postgres_data/
+pgdata/
+**/pgdata/
+
