@@ -1,0 +1,8 @@
+* text=auto
+
+# Keep shell scripts with LF for Linux containers/CI
+*.sh text eol=lf
+
+# Windows scripts
+*.bat text eol=crlf
+*.ps1 text eol=crlf

@@ -1,0 +1,44 @@
+services:
+  trs-db:
+    image: postgres:16-alpine
+    container_name: trs-db
+    environment:
+      POSTGRES_DB: trs_db
+      POSTGRES_USER: trs_user
+      POSTGRES_PASSWORD: trs_pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - trs_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trs_user -d trs_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  trs-api:
+    image: timer-registration-api:1.0.0
+    container_name: trs-api
+    depends_on:
+      trs-db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://trs-db:5432/trs_db
+      SPRING_DATASOURCE_USERNAME: trs_user
+      SPRING_DATASOURCE_PASSWORD: trs_pass
+      SPRING_JPA_SHOW_SQL: "false"
+      SPRING_FLYWAY_ENABLED: "true"
+      SERVER_PORT: 8080
+    ports:
+      - "8081:8080"
+
+  trs-frontend:
+    image: timer-registration-frontend:1.0.0
+    container_name: trs-frontend
+    depends_on:
+      - trs-api
+    ports:
+      - "3001:3000"
+
+volumes:
+  trs_pgdata:

@@ -1,0 +1,53 @@
+# ---------- OS / Editor ----------
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ---------- Logs ----------
+*.log
+logs/
+
+# ---------- Env / Secrets ----------
+.env
+.env.*
+!.env.example
+!.env.*.example
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.*.example
+
+# ---------- Frontend ----------
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/coverage/
+frontend/.vercel/
+frontend/*.tsbuildinfo
+frontend/next-env.d.ts
+
+# ---------- Backend (Spring Boot / Maven / Gradle) ----------
+backend/**/target/
+backend/**/build/
+backend/**/.mvn/wrapper/maven-wrapper.jar
+
+# ---------- Java / JVM ----------
+*.class
+*.jar
+*.war
+*.ear
+
+# ---------- Docker / Postgres local data ----------
+db_data/
+postgres_data/
+pgdata/
+**/postgres_data/
+**/pgdata/
+
+
+# ----Docs folder----
+docs/
