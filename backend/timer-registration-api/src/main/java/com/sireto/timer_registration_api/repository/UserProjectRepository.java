@@ -7,4 +7,5 @@ import java.util.List;
 public interface UserProjectRepository extends JpaRepository<UserProject, Long> {
     boolean existsByUser_IdAndProject_Id(Long userId, Long projectId);
     List<UserProject> findByUser_Id(Long userId);
+    List<UserProject> findAllByOrderByUser_FullNameAscProject_ProjectCodeAsc();
 } 

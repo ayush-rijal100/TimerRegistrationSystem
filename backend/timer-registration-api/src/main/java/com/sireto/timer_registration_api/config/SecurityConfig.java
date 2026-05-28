@@ -38,6 +38,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/health").permitAll()
                 .requestMatchers("/api/auth/login").permitAll()
+                .requestMatchers("/api/bot/**").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/reports/**").hasAnyRole("MANAGER", "ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/projects/my").hasAnyRole("EMPLOYEE", "MANAGER", "ADMIN")
@@ -65,7 +66,7 @@ public class SecurityConfig {
                         .toList()
         );
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Bot-Service-Token"));
         configuration.setAllowCredentials(false);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

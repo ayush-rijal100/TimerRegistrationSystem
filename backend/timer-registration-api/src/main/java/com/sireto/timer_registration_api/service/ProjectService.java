@@ -47,4 +47,22 @@ public class ProjectService {
                 project.getIsActive()
         );
     }
+
+@Transactional(readOnly = true)
+public List<ProjectResponse> getProjectsForUser(User user) {
+    return userProjectRepository.findByUser_Id(user.getId())
+            .stream()
+            .map(userProject -> {
+                Project project = userProject.getProject();
+
+                return new ProjectResponse(
+                        project.getId(),
+                        project.getProjectCode(),
+                        project.getProjectName(),
+                        project.getIsActive()
+                );
+            })
+            .toList();
+}
+
 }

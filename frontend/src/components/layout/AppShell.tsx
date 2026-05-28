@@ -5,6 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   BarChart3,
   BriefcaseBusiness,
+  CalendarDays,
+  Calendar,
   Clock3,
   LogOut,
   ShieldCheck,
@@ -24,9 +26,21 @@ type AppShellProps = {
 
 const navItems = [
   {
-    href: "/employee/timesheet",
+    href: "/employee/timesheet/daily",
     icon: Clock3,
-    label: "Timesheet",
+    label: "Daily View",
+    roles: ["EMPLOYEE"],
+  },
+  {
+    href: "/employee/timesheet/weekly",
+    icon: Calendar,
+    label: "Weekly View",
+    roles: ["EMPLOYEE"],
+  },
+  {
+    href: "/employee/timesheet/monthly",
+    icon: CalendarDays,
+    label: "Monthly Calendar",
     roles: ["EMPLOYEE"],
   },
   {
@@ -52,7 +66,7 @@ function getBrandHref(role: AuthUser["role"]) {
     return "/admin";
   }
 
-  return "/employee/timesheet";
+  return "/employee/timesheet/daily";
 }
 
 export function AppShell({

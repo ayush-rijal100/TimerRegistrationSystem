@@ -6,6 +6,7 @@ import com.sireto.timer_registration_api.dto.CreateProjectRequest;
 import com.sireto.timer_registration_api.dto.CreateUserRequest;
 import com.sireto.timer_registration_api.dto.ProjectResponse;
 import com.sireto.timer_registration_api.dto.UserResponse;
+import com.sireto.timer_registration_api.dto.UserProjectAssignmentResponse;
 import com.sireto.timer_registration_api.entity.Project;
 import com.sireto.timer_registration_api.entity.Role;
 import com.sireto.timer_registration_api.entity.User;
@@ -72,6 +73,35 @@ public class AdminService {
     }
 
     @Transactional
+    public UserResponse createUserForBot(CreateUserRequest request, User actorUser) {
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new RuntimeException("Email already exists");
+        }
+
+        Role role = roleRepository.findByName(request.getRole())
+                .orElseThrow(() -> new RuntimeException("Role not found"));
+
+        User user = new User();
+        user.setFullName(request.getFullName());
+        user.setEmail(request.getEmail());
+        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        user.setRole(role);
+        user.setIsActive(true);
+
+        User saved = userRepository.save(user);
+
+        auditLogService.log(
+                actorUser,
+                "BOT_CREATE_USER",
+                "USER",
+                saved.getId(),
+                "{\"email\":\"" + saved.getEmail() + "\",\"role\":\"" + role.getName() + "\"}"
+        );
+
+        return toUserResponse(saved);
+    }
+
+    @Transactional
     public UserResponse updateUserStatus(Long userId, com.sireto.timer_registration_api.dto.UpdateUserStatusRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -127,6 +157,30 @@ public class AdminService {
     }
 
     @Transactional
+    public ProjectResponse createProjectForBot(CreateProjectRequest request, User actorUser) {
+        if (projectRepository.existsByProjectCode(request.getProjectCode())) {
+            throw new RuntimeException("Project code already exists");
+        }
+
+        Project project = new Project();
+        project.setProjectCode(request.getProjectCode());
+        project.setProjectName(request.getProjectName());
+        project.setIsActive(true);
+
+        Project saved = projectRepository.save(project);
+
+        auditLogService.log(
+                actorUser,
+                "BOT_CREATE_PROJECT",
+                "PROJECT",
+                saved.getId(),
+                "{\"projectCode\":\"" + saved.getProjectCode() + "\"}"
+        );
+
+        return toProjectResponse(saved);
+    }
+
+    @Transactional
     public AssignUserProjectResponse assignUserToProject(AssignUserProjectRequest request) {
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -147,6 +201,56 @@ public class AdminService {
         auditLogService.log(
                 currentUserService.getCurrentUser(),
                 "ASSIGN_USER_PROJECT",
+                "USER_PROJECT",
+                user.getId(),
+                "{\"userId\":" + user.getId() + ",\"projectId\":" + project.getId() + "}"
+        );
+
+        return new AssignUserProjectResponse(
+                user.getId(),
+                project.getId(),
+                "User assigned to project successfully"
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserProjectAssignmentResponse> getAllUserProjectAssignments() {
+        return userProjectRepository.findAllByOrderByUser_FullNameAscProject_ProjectCodeAsc()
+                .stream()
+                .map(userProject -> new UserProjectAssignmentResponse(
+                        userProject.getUser().getId(),
+                        userProject.getUser().getFullName(),
+                        userProject.getUser().getEmail(),
+                        userProject.getUser().getRole().getName(),
+                        userProject.getProject().getId(),
+                        userProject.getProject().getProjectCode(),
+                        userProject.getProject().getProjectName(),
+                        userProject.getProject().getIsActive()
+                ))
+                .toList();
+    }
+
+    @Transactional
+    public AssignUserProjectResponse assignUserToProjectForBot(AssignUserProjectRequest request, User actorUser) {
+        User user = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Project project = projectRepository.findById(request.getProjectId())
+                .orElseThrow(() -> new RuntimeException("Project not found"));
+
+        if (userProjectRepository.existsByUser_IdAndProject_Id(user.getId(), project.getId())) {
+            throw new RuntimeException("User is already assigned to project");
+        }
+
+        UserProject userProject = new UserProject();
+        userProject.setUser(user);
+        userProject.setProject(project);
+
+        userProjectRepository.save(userProject);
+
+        auditLogService.log(
+                actorUser,
+                "BOT_ASSIGN_USER_PROJECT",
                 "USER_PROJECT",
                 user.getId(),
                 "{\"userId\":" + user.getId() + ",\"projectId\":" + project.getId() + "}"
@@ -202,3 +306,5 @@ public class AdminService {
         );
     }
 }
+
+

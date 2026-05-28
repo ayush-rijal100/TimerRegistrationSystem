@@ -27,7 +27,11 @@ public class TimeEntryService {
     @Transactional
     public TimeEntryResponse createTimeEntry(TimeEntryRequest request) {
         User currentUser = currentUserService.getCurrentUser();
+        return createTimeEntryForUser(currentUser, request);
+    }
 
+    @Transactional
+    public TimeEntryResponse createTimeEntryForUser(User currentUser, TimeEntryRequest request) {
         Project project = projectRepository.findById(request.getProjectId())
                 .orElseThrow(() -> new RuntimeException("Project not found"));
 
@@ -95,8 +99,13 @@ public class TimeEntryService {
     public List<TimeEntryResponse> getMyTimeEntries(LocalDate startDate, LocalDate endDate) {
         User currentUser = currentUserService.getCurrentUser();
 
+        return getTimeEntriesForUser(currentUser, startDate, endDate);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TimeEntryResponse> getTimeEntriesForUser(User user, LocalDate startDate, LocalDate endDate) {
         return timeEntryRepository.findByUser_IdAndEntryDateBetween(
-                currentUser.getId(),
+                user.getId(),
                 startDate,
                 endDate)
                 .stream()
@@ -107,7 +116,11 @@ public class TimeEntryService {
     @Transactional
     public TimeEntryResponse updateTimeEntry(Long id, TimeEntryRequest request) {
         User currentUser = currentUserService.getCurrentUser();
+        return updateTimeEntryForUser(currentUser, id, request);
+    }
 
+    @Transactional
+    public TimeEntryResponse updateTimeEntryForUser(User currentUser, Long id, TimeEntryRequest request) {
         TimeEntry timeEntry = timeEntryRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Time entry not found"));
 
@@ -166,4 +179,34 @@ public class TimeEntryService {
         return toResponse(saved);
     }
 
+
+    @Transactional
+    public TimeEntryResponse cancelTimeEntryForUser(User currentUser, Long id) {
+        TimeEntry timeEntry = timeEntryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Time entry not found"));
+
+        if (!timeEntry.getUser().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("User can cancel only own time entry");
+        }
+
+        if ("CANCELLED".equals(timeEntry.getStatus())) {
+            throw new RuntimeException("Time entry is already cancelled");
+        }
+
+        timeEntry.setStatus("CANCELLED");
+
+        TimeEntry saved = timeEntryRepository.save(timeEntry);
+
+        String metaJson = "{\"timeEntryId\":" + saved.getId()
+                + ",\"status\":\"CANCELLED\"}";
+
+        auditLogService.log(
+                currentUser,
+                "CANCEL_TIME_ENTRY",
+                "TIME_ENTRY",
+                saved.getId(),
+                metaJson);
+
+        return toResponse(saved);
+    }
 }

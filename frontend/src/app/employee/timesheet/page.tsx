@@ -1,7 +1,7 @@
-import { EmployeeTimesheetClient } from "@/app/employee/timesheet/EmployeeTimesheetClient";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default function EmployeeTimesheetPage() {
-  return <EmployeeTimesheetClient />;
+  redirect("/employee/timesheet/daily");
 }

@@ -3,6 +3,7 @@
 
 package com.sireto.timer_registration_api.service;
 
+import com.sireto.timer_registration_api.dto.CurrentUserResponse;
 import com.sireto.timer_registration_api.entity.User;
 import com.sireto.timer_registration_api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -29,5 +30,17 @@ public class CurrentUserService {
 
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Authenticated user not found in database"));
+    }
+
+    @Transactional(readOnly = true)
+    public CurrentUserResponse getCurrentUserResponse() {
+        User user = getCurrentUser();
+
+        return new CurrentUserResponse(
+                user.getId(),
+                user.getFullName(),
+                user.getEmail(),
+                user.getRole().getName()
+        );
     }
 }
