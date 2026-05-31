@@ -17,6 +17,8 @@
   "license": "ISC",
   "dependencies": {
     "@modelcontextprotocol/sdk": "latest",
+    "axios": "^1.16.1",
+    "dotenv": "^17.4.2",
     "zod": "latest"
   },
   "devDependencies": {

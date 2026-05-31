@@ -76,3 +76,4 @@ postgres_data/
 pgdata/
 **/pgdata/
 
+*.md
