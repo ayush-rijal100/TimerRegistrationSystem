@@ -44,7 +44,9 @@ public class ProjectService {
                 project.getId(),
                 project.getProjectCode(),
                 project.getProjectName(),
-                project.getIsActive()
+                project.getIsActive(),
+                project.getCreatedAt(),
+                project.getUpdatedAt()
         );
     }
 
@@ -59,7 +61,9 @@ public List<ProjectResponse> getProjectsForUser(User user) {
                         project.getId(),
                         project.getProjectCode(),
                         project.getProjectName(),
-                        project.getIsActive()
+                        project.getIsActive(),
+                        project.getCreatedAt(),
+                        project.getUpdatedAt()
                 );
             })
             .toList();

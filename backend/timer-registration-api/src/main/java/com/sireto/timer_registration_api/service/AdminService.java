@@ -302,9 +302,12 @@ public class AdminService {
                 project.getId(),
                 project.getProjectCode(),
                 project.getProjectName(),
-                project.getIsActive()
+                project.getIsActive(),
+                project.getCreatedAt(),
+                project.getUpdatedAt()
         );
     }
 }
+
 
 

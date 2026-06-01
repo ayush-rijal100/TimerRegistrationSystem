@@ -1,8 +1,10 @@
-﻿export type ProjectResponse = {
+export type ProjectResponse = {
   id: number;
   projectCode: string;
   projectName: string;
   active: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type TimeEntryResponse = {
@@ -71,3 +73,19 @@ export type UserProjectAssignmentResponse = {
   projectName: string;
   projectActive: boolean;
 };
+
+
+export type UtilizationReportResponse = {
+  userId: number;
+  fullName: string;
+  totalHours: number;
+  expectedHours: number;
+  utilizationPercent: number;
+};
+
+export type MissingEntriesReportResponse = {
+  userId: number;
+  fullName: string;
+  missingDates: string[];
+};
+

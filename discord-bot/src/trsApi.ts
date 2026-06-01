@@ -179,6 +179,8 @@ export type ProjectResponse = {
   projectCode: string;
   projectName: string;
   active: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 // Shape returned by GET /api/time-entries/my.
@@ -383,3 +385,4 @@ export async function createBotAdminUser(
 
   return response.data;
 }
+

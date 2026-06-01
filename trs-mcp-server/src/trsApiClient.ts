@@ -10,7 +10,9 @@ import type {
   ProjectResponse,
   TimeEntryResponse,
   UserProjectAssignmentResponse,
-  UserResponse
+  UserResponse,
+  UtilizationReportResponse,
+  MissingEntriesReportResponse
 } from "./types.js";
 
 const botHeaders = {
@@ -97,6 +99,46 @@ export async function getProjectAssignmentsFromTrs(): Promise<UserProjectAssignm
 
   return response.data;
 }
+
+export async function getTeamUtilizationFromTrs(
+  startDate: string,
+  endDate: string
+): Promise<UtilizationReportResponse[]> {
+  const response = await axios.get<UtilizationReportResponse[]>(
+    `${config.trsApiBaseUrl}/api/bot/reports/utilization`,
+    {
+      headers: botHeaders,
+      params: {
+        ...identityParams,
+        startDate,
+        endDate
+      }
+    }
+  );
+
+  return response.data;
+}
+
+export async function getTeamMissingEntriesFromTrs(
+  startDate: string,
+  endDate: string
+): Promise<MissingEntriesReportResponse[]> {
+  const response = await axios.get<MissingEntriesReportResponse[]>(
+    `${config.trsApiBaseUrl}/api/bot/reports/missing-entries`,
+    {
+      headers: botHeaders,
+      params: {
+        ...identityParams,
+        startDate,
+        endDate
+      }
+    }
+  );
+
+  return response.data;
+}
+
+
 
 export async function createProjectInTrs(request: CreateProjectRequest): Promise<ProjectResponse> {
   const response = await axios.post<ProjectResponse>(`${config.trsApiBaseUrl}/api/bot/admin/projects`, request, {

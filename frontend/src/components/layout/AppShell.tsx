@@ -10,6 +10,8 @@ import {
   Clock3,
   LogOut,
   ShieldCheck,
+  Percent,
+  AlertCircle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -44,9 +46,27 @@ const navItems = [
     roles: ["EMPLOYEE"],
   },
   {
-    href: "/manager/reports",
-    icon: BarChart3,
-    label: "Reports",
+    href: "/employee/projects",
+    icon: BriefcaseBusiness,
+    label: "My Projects",
+    roles: ["EMPLOYEE"],
+  },
+  {
+    href: "/manager/reports/project-hours",
+    icon: BriefcaseBusiness,
+    label: "Project Hours",
+    roles: ["MANAGER", "ADMIN"],
+  },
+  {
+    href: "/manager/reports/utilization",
+    icon: Percent,
+    label: "Utilization",
+    roles: ["MANAGER", "ADMIN"],
+  },
+  {
+    href: "/manager/reports/missing-entries",
+    icon: AlertCircle,
+    label: "Missing Entries",
     roles: ["MANAGER", "ADMIN"],
   },
   {
@@ -59,7 +79,7 @@ const navItems = [
 
 function getBrandHref(role: AuthUser["role"]) {
   if (role === "MANAGER") {
-    return "/manager/reports";
+    return "/manager/reports/project-hours";
   }
 
   if (role === "ADMIN") {

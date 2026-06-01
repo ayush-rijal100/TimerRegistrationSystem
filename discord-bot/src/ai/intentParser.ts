@@ -12,6 +12,10 @@ export type AiDateRange = {
   label: string;
 };
 
+export type ProjectStatusFilter = "ACTIVE" | "INACTIVE" | "ALL";
+export type ProjectSortBy = "CREATED_AT" | "PROJECT_CODE" | "PROJECT_NAME";
+export type ProjectSortDirection = "ASC" | "DESC";
+
 export type AiIntentResult = {
   intent: AiIntentName;
   confidence: number;
@@ -22,6 +26,9 @@ export type AiIntentResult = {
   employeeReference?: string;
   projectCode?: string;
   projectName?: string;
+  projectStatusFilter?: ProjectStatusFilter;
+  projectSortBy?: ProjectSortBy;
+  projectSortDirection?: ProjectSortDirection;
   fullName?: string;
   email?: string;
   password?: string;
@@ -131,6 +138,18 @@ function safeParseIntent(rawText: string): AiIntentResult {
         result.projectName = parsed.projectName.trim().slice(0, 120);
       }
 
+      if (parsed.projectStatusFilter === "ACTIVE" || parsed.projectStatusFilter === "INACTIVE" || parsed.projectStatusFilter === "ALL") {
+        result.projectStatusFilter = parsed.projectStatusFilter;
+      }
+
+      if (parsed.projectSortBy === "CREATED_AT" || parsed.projectSortBy === "PROJECT_CODE" || parsed.projectSortBy === "PROJECT_NAME") {
+        result.projectSortBy = parsed.projectSortBy;
+      }
+
+      if (parsed.projectSortDirection === "ASC" || parsed.projectSortDirection === "DESC") {
+        result.projectSortDirection = parsed.projectSortDirection;
+      }
+
       if (typeof parsed.fullName === "string" && parsed.fullName.trim().length > 0) {
         result.fullName = parsed.fullName.trim().slice(0, 100);
       }
@@ -213,7 +232,10 @@ export async function parseAiIntent(
           "If the intent is VIEW_TEAM_UTILIZATION, include dateRange whenever the user mentions or implies a date/range.",
           "If the user asks who missed work logs, forgot to submit timesheets, did not fill time, has missing entries, left work unsubmitted, or has incomplete time records, return VIEW_MISSING_ENTRIES.",
           "If the user asks to show/list all employees, users, TRS users, staff, or people in the system, return VIEW_ADMIN_USERS.",
-          "If the user asks to show, list, give, fetch, get, or see all projects, company projects, TRS projects, project codes, available projects, or projects in the system, return VIEW_ADMIN_PROJECTS.",
+          "If the user asks to show, list, give, fetch, get, or see all projects, company projects, TRS projects, project codes, available projects, current projects, active projects, inactive projects, latest projects, newest projects, oldest projects, or projects in the system, return VIEW_ADMIN_PROJECTS.",
+          "For VIEW_ADMIN_PROJECTS, extract projectStatusFilter as ACTIVE when the user asks active/current/available projects, INACTIVE when they ask inactive/disabled projects, and ALL when they explicitly ask all projects.",
+          "For VIEW_ADMIN_PROJECTS, extract projectSortBy and projectSortDirection: latest/newest/recent means CREATED_AT DESC; oldest/old first means CREATED_AT ASC; alphabetical/name wise means PROJECT_NAME ASC; project code/code order means PROJECT_CODE ASC.",
+          "For VIEW_ADMIN_PROJECTS, if no status filter is specified, prefer ACTIVE. If no sort is specified, prefer PROJECT_CODE ASC.",
           "If the user asks to create/add/register a project, return CREATE_ADMIN_PROJECT and extract projectCode plus projectName.",
           "If projectCode or projectName is missing for CREATE_ADMIN_PROJECT, set needsClarification=true and ask for the missing value.",
           "If the user asks to create/add/register a user, employee, manager, or admin account, return CREATE_ADMIN_USER and extract fullName, email, password, and role.",
@@ -256,8 +278,9 @@ export async function parseAiIntent(
           "{ \"intent\": \"VIEW_MISSING_ENTRIES\", \"confidence\": 0.95, \"dateRange\": { \"startDate\": \"2026-05-01\", \"endDate\": \"2026-05-31\", \"label\": \"this month\" } }",
           "{ \"intent\": \"VIEW_MISSING_ENTRIES\", \"confidence\": 0.95, \"employeeReference\": \"Bijaya Tiwari\", \"dateRange\": { \"startDate\": \"2026-05-01\", \"endDate\": \"2026-05-31\", \"label\": \"May 2026\" } }",
           "{ \"intent\": \"VIEW_ADMIN_USERS\", \"confidence\": 0.95 }",
-          "{ \"intent\": \"VIEW_ADMIN_PROJECTS\", \"confidence\": 0.95 }",
-          "{ \"intent\": \"VIEW_ADMIN_PROJECTS\", \"confidence\": 0.95, \"exampleUserText\": \"give me list of all the projects of our company\" }",
+          "{ \"intent\": \"VIEW_ADMIN_PROJECTS\", \"confidence\": 0.95, \"projectStatusFilter\": \"ACTIVE\", \"projectSortBy\": \"PROJECT_CODE\", \"projectSortDirection\": \"ASC\" }",
+          "{ \"intent\": \"VIEW_ADMIN_PROJECTS\", \"confidence\": 0.95, \"projectStatusFilter\": \"ALL\", \"projectSortBy\": \"PROJECT_CODE\", \"projectSortDirection\": \"ASC\", \"exampleUserText\": \"give me list of all the projects of our company\" }",
+          "{ \"intent\": \"VIEW_ADMIN_PROJECTS\", \"confidence\": 0.95, \"projectStatusFilter\": \"ACTIVE\", \"projectSortBy\": \"CREATED_AT\", \"projectSortDirection\": \"DESC\", \"exampleUserText\": \"show latest active projects first\" }",
           "{ \"intent\": \"ASSIGN_ADMIN_USER_PROJECT\", \"confidence\": 0.95, \"employeeReference\": \"Bijaya Tiwari\", \"projectReference\": \"PRJ-002\" }",
           "{ \"intent\": \"VIEW_ADMIN_ASSIGNMENTS\", \"confidence\": 0.95 }",
           "{ \"intent\": \"VIEW_ADMIN_ASSIGNMENTS\", \"confidence\": 0.95, \"exampleUserText\": \"give me list of all the assigned users along with the project\" }",
@@ -271,11 +294,11 @@ export async function parseAiIntent(
       ...recentHistory,  //our past message is replayed here 
 
 // System: You are an intent parser...
-// User: hey buddy who am I           ← old message #1
-// Assistant: Hey Bijaya! You're...    ← old reply #1
-// User: show my projects              ← old message #2
-// Assistant: You have PRJ-001...      ← old reply #2
-// User: what about last week          ← YOUR NEW MESSAGE
+// User: hey buddy who am I           <- old message #1
+// Assistant: Hey Bijaya! You're...    <- old reply #1
+// User: show my projects              <- old message #2
+// Assistant: You have PRJ-001...      <- old reply #2
+// User: what about last week          <- YOUR NEW MESSAGE
 
       {
         
@@ -292,6 +315,8 @@ export async function parseAiIntent(
   console.log("[TRS intent parsed]", parsedIntent);
   return parsedIntent;
 }
+
+
 
 
 

@@ -18,12 +18,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+
 import {
   Table,
   TableBody,
@@ -41,7 +36,7 @@ import {
 import { getEndOfMonth, getStartOfMonth, toDateInputValue } from "@/lib/dates";
 import { exportCsv } from "@/lib/exportCsv";
 
-export function ManagerReportsClient() {
+export function ManagerReportsClient({ activeView }: { activeView: "project-hours" | "utilization" | "missing" }) {
   return (
     <RequireRole allowedRoles={["MANAGER", "ADMIN"]}>
       {(user) => (
@@ -50,14 +45,14 @@ export function ManagerReportsClient() {
           pageTitle="Manager Reports"
           user={user}
         >
-          <ManagerReportsContent />
+          <ManagerReportsContent activeView={activeView} />
         </AppShell>
       )}
     </RequireRole>
   );
 }
 
-function ManagerReportsContent() {
+function ManagerReportsContent({ activeView }: { activeView: "project-hours" | "utilization" | "missing" }) {
   const today = new Date();
   const [draftStartDate, setDraftStartDate] = useState(
     toDateInputValue(getStartOfMonth(today))
@@ -172,14 +167,8 @@ function ManagerReportsContent() {
         <MetricCard label="Missing submitters" value={String(missingEmployeeCount)} icon={AlertCircle} />
       </div>
 
-      <Tabs defaultValue="project-hours">
-        <TabsList className="mb-5">
-          <TabsTrigger value="project-hours">Project Hours</TabsTrigger>
-          <TabsTrigger value="utilization">Utilization</TabsTrigger>
-          <TabsTrigger value="missing">Missing Entries</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="project-hours">
+      <div className="mt-6">
+        {activeView === "project-hours" && (
           <Card className="rounded-xl border border-border bg-card shadow-[0_1px_3px_rgba(0,0,0,0.02),0_1px_2px_rgba(0,0,0,0.01)]">
           <CardHeader className="flex flex-row items-start justify-between px-6 pt-6 pb-4">
             <div>
@@ -209,9 +198,9 @@ function ManagerReportsContent() {
             )}
           </CardContent>
           </Card>
-        </TabsContent>
+        )}
 
-        <TabsContent value="utilization">
+        {activeView === "utilization" && (
           <Card className="rounded-xl border border-border bg-card shadow-[0_1px_3px_rgba(0,0,0,0.02),0_1px_2px_rgba(0,0,0,0.01)]">
           <CardHeader className="flex flex-row items-start justify-between px-6 pt-6 pb-4">
             <div>
@@ -243,9 +232,9 @@ function ManagerReportsContent() {
             )}
           </CardContent>
           </Card>
-        </TabsContent>
+        )}
 
-        <TabsContent value="missing">
+        {activeView === "missing" && (
           <Card className="rounded-xl border border-border bg-card shadow-[0_1px_3px_rgba(0,0,0,0.02),0_1px_2px_rgba(0,0,0,0.01)]">
         <CardHeader className="flex flex-row items-start justify-between px-6 pt-6 pb-4">
           <div>
@@ -277,8 +266,8 @@ function ManagerReportsContent() {
           )}
         </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+        )}
+      </div>
     </div>
   );
 }

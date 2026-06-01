@@ -1,7 +1,5 @@
-import { ManagerReportsClient } from "@/app/manager/reports/ManagerReportsClient";
-
-export const dynamic = "force-dynamic";
+import { redirect } from "next/navigation";
 
 export default function ManagerReportsPage() {
-  return <ManagerReportsClient />;
+  redirect("/manager/reports/project-hours");
 }

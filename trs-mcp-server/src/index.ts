@@ -6,6 +6,8 @@ import { registerAdminUserTools } from "./tools/adminUserTools.js";
 import { registerIdentityTools } from "./tools/identityTools.js";
 import { registerProjectTools } from "./tools/projectTools.js";
 import { registerTimeEntryTools } from "./tools/timeEntryTools.js";
+import { registerManagerReportTools } from "./tools/managerReportTools.js";
+
 
 const server = new McpServer({
   name: "trs-mcp-server",
@@ -15,6 +17,7 @@ const server = new McpServer({
 registerIdentityTools(server);
 registerProjectTools(server);
 registerTimeEntryTools(server);
+registerManagerReportTools(server);
 registerAdminUserTools(server);
 registerAdminAssignmentTools(server);
 

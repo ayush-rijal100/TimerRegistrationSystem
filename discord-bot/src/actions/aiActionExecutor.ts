@@ -1,6 +1,6 @@
-import { addConversationMessage } from "../ai/conversationStore";
+﻿import { addConversationMessage } from "../ai/conversationStore";
 import { AiIntentName, AiIntentResult } from "../ai/intentParser";
-import { writeProfileResponse, writeProjectsResponse, writeTimeEntriesResponse } from "../ai/responseWriter";
+import { writeProfileResponse, writeProjectsResponse} from "../ai/responseWriter";
 import { parseDateRange } from "../domain/timeEntries/dateRangeParser";
 import {
   clearPendingAdminAssignment,
@@ -24,6 +24,7 @@ import { canExecuteAction, getAllowedRoles } from "./actionPermissions";
 import {
   AdminUserResponse,
   CurrentUserResponse,
+  ProjectResponse,
   assignBotAdminUserToProject,
   cancelBotMyTimeEntry,
   createBotAdminProject,
@@ -106,44 +107,77 @@ async function handleViewMyProfile(message: BotMessage, currentUser: CurrentUser
 
 async function handleViewMyProjects(message: BotMessage, projectReference?: string): Promise<void> {
   const projects = await getBotMyProjects("DISCORD", message.author.id);
-  const projectMatch = matchProjectReference(message.content.trim(), projects, projectReference);
+  const cleanedProjectReference = cleanProjectReference(projectReference);
 
-  if (projectMatch.type === "EXACT_MATCH") {
-    await replyAndRemember(
-      message,
-      `Yes, you are assigned to ${projectMatch.project.projectCode} - ${projectMatch.project.projectName}.`
-    );
-    return;
+  // Only run project matching when the user mentions a real project code/name.
+  // Generic questions like "which projects am I assigned to" should list projects instead.
+  if (cleanedProjectReference) {
+    const projectMatch = matchProjectReference(message.content.trim(), projects, cleanedProjectReference);
+
+    if (projectMatch.type === "EXACT_MATCH") {
+      await replyAndRemember(
+        message,
+        `Yes, you are assigned to ${projectMatch.project.projectCode} - ${projectMatch.project.projectName}.`
+      );
+      return;
+    }
+
+    if (projectMatch.type === "POSSIBLE_MATCH") {
+      await replyAndRemember(
+        message,
+        `Did you mean ${projectMatch.project.projectCode} - ${projectMatch.project.projectName}? If yes, you are assigned to that project.`
+      );
+      return;
+    }
+
+    if (projectMatch.type === "NO_MATCH") {
+      await replyAndRemember(
+        message,
+        [
+          `I could not confidently match "${projectMatch.userText}" to one of your assigned projects.`,
+          "Your assigned projects are:",
+          ...projects.map((project) => `- ${project.projectCode} - ${project.projectName}`)
+        ].join("\n")
+      );
+      return;
+    }
   }
 
-  if (projectMatch.type === "POSSIBLE_MATCH") {
-    await replyAndRemember(
-      message,
-      `Did you mean ${projectMatch.project.projectCode} - ${projectMatch.project.projectName}? If yes, you are assigned to that project.`
-    );
-    return;
-  }
-
-  if (projectMatch.type === "NO_MATCH") {
-    await replyAndRemember(
-      message,
-      [
-        `I could not confidently match "${projectMatch.userText}" to one of your assigned projects.`,
-        "Your assigned projects are:",
-        ...projects.map((project) => `- ${project.projectCode} - ${project.projectName}`)
-      ].join("\n")
-    );
-    return;
-  }
+  const activeProjects = message.content.toLowerCase().includes("active")
+    ? projects.filter((project) => project.active)
+    : projects;
 
   const reply = await writeProjectsResponse({
     originalUserMessage: message.content.trim(),
-    projects
+    projects: activeProjects
   });
 
   await replyAndRemember(message, reply);
 }
 
+function cleanProjectReference(projectReference?: string): string | undefined {
+  const value = projectReference?.trim();
+  if (!value) return undefined;
+
+  const normalized = value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const genericReferences = [
+    "i am assigned to",
+    "am i assigned to",
+    "assigned to",
+    "which i am assigned to",
+    "whic i am assigned too",
+    "which active projects i am assigned to",
+    "projects i am assigned to",
+    "my projects",
+    "active projects"
+  ];
+
+  if (genericReferences.some((generic) => normalized === generic || normalized.includes(generic))) {
+    return undefined;
+  }
+
+  return value;
+}
 async function handleViewMyTimeEntries(message: BotMessage, parsedIntent: AiIntentResult): Promise<void> {
   const dateRange = parsedIntent.dateRange ?? parseDateRange(message.content.trim());
   const entries = await getBotMyTimeEntries(
@@ -153,16 +187,63 @@ async function handleViewMyTimeEntries(message: BotMessage, parsedIntent: AiInte
     dateRange.endDate
   );
 
-  const reply = await writeTimeEntriesResponse({
-    originalUserMessage: message.content.trim(),
-    label: dateRange.label,
-    startDate: dateRange.startDate,
-    endDate: dateRange.endDate,
-    entries
+  if (entries.length === 0) {
+    await replyAndRemember(
+      message,
+      `I did not find any time entries for ${dateRange.label}.`
+    );
+    return;
+  }
+
+  const totalHours = entries.reduce((sum, entry) => sum + Number(entry.hours), 0);
+
+  const lines = entries.map((entry) => {
+    const date = entry.entryDate.padEnd(10);
+    const project = entry.projectCode.padEnd(8);
+    const hours = `${Number(entry.hours).toFixed(1)}h`.padStart(6);
+    const status = formatStatus(entry.status).padEnd(9);
+    const notes = shortenText(cleanDiscordTableText(entry.notes || "-"), 32);
+
+    return `${date} | ${project} | ${hours} | ${status} | ${notes}`;
   });
 
-  await replyAndRemember(message, reply);
+  await replyAndRemember(
+    message,
+    [
+      `I found ${entries.length} time entr${entries.length === 1 ? "y" : "ies"} for ${dateRange.label}. Total hours: ${totalHours.toFixed(1)}.`,
+      "",
+      "```text",
+      "Date       | Project  | Hours  | Status    | Notes",
+      "-----------|----------|--------|-----------|--------------------------------",
+      ...lines,
+      "```"
+    ].join("\n")
+  );
 }
+
+function cleanDiscordTableText(value: string): string {
+  return value
+    .replace(/\u00A0/g, " ")
+    .replace(/\u2011/g, "-")
+    .replace(/\u2013/g, "-")
+    .replace(/\u2014/g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function shortenText(value: string, maxLength: number): string {
+  if (value.length <= maxLength) {
+    return value.padEnd(maxLength);
+  }
+
+  return `${value.slice(0, maxLength - 3)}...`;
+}
+
+function formatStatus(status: string): string {
+  return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+}
+
+
 
 async function handleCreateTimeEntryDraft(message: BotMessage, parsedIntent: AiIntentResult): Promise<void> {
   if (!parsedIntent.hours || !parsedIntent.projectReference || !parsedIntent.dateRange) {
@@ -365,9 +446,22 @@ async function handleViewAdminUsers(message: BotMessage): Promise<void> {
   const users = await getBotAdminUsers("DISCORD", message.author.id);
 
   if (users.length === 0) {
-    await replyAndRemember(message, "No users found in TRS.");
+    await replyAndRemember(message, "I could not find any users in TRS yet.");
     return;
   }
+
+  const activeCount = users.filter((user) => user.active).length;
+  const inactiveCount = users.length - activeCount;
+
+  const roleCounts = users.reduce<Record<string, number>>((counts, user) => {
+    counts[user.role] = (counts[user.role] ?? 0) + 1;
+    return counts;
+  }, {});
+
+  const roleSummary = Object.entries(roleCounts)
+    .sort(([firstRole], [secondRole]) => firstRole.localeCompare(secondRole))
+    .map(([role, count]) => `${count} ${formatRoleLabel(role)}${count === 1 ? "" : "s"}`)
+    .join(", ");
 
   const lines = users.map((user) => {
     const name = user.fullName.length > 18 ? `${user.fullName.slice(0, 15)}...` : user.fullName;
@@ -377,50 +471,145 @@ async function handleViewAdminUsers(message: BotMessage): Promise<void> {
     return `${String(user.id).padEnd(3)} | ${name.padEnd(18)} | ${user.role.padEnd(8)} | ${status.padEnd(8)} | ${email}`;
   });
 
+  const activitySummary = inactiveCount > 0
+    ? `${activeCount} active and ${inactiveCount} inactive`
+    : `${activeCount} active`;
+
   await replyAndRemember(
     message,
     [
-      `TRS users (${users.length}):`,
+      `I found ${users.length} user${users.length === 1 ? "" : "s"} in TRS: ${activitySummary}.`,
+      roleSummary ? `Role breakdown: ${roleSummary}.` : undefined,
+      "",
+      "Here’s the user list:",
       "```text",
       "ID  | Name               | Role     | Status   | Email",
       "----|--------------------|----------|----------|---------------------------",
       ...lines,
       "```"
-    ].join("\n")
+    ].filter(Boolean).join("\n")
   );
 }
 
-async function handleViewAdminProjects(message: BotMessage): Promise<void> {
+function formatRoleLabel(role: string): string {
+  const lower = role.toLowerCase();
+
+  return lower.charAt(0).toUpperCase() + lower.slice(1);
+}
+
+async function handleViewAdminProjects(message: BotMessage, parsedIntent: AiIntentResult): Promise<void> {
   const projects = await getBotAdminProjects("DISCORD", message.author.id);
 
   if (projects.length === 0) {
-    await replyAndRemember(message, "No projects found in TRS.");
+    await replyAndRemember(message, "I could not find any projects in TRS yet.");
     return;
   }
 
-  const lines = projects.map((project) => {
-    const name = project.projectName.length > 28
-      ? `${project.projectName.slice(0, 25)}...`
+  const statusFilter = parsedIntent.projectStatusFilter ?? "ACTIVE";
+  const sortBy = parsedIntent.projectSortBy ?? "PROJECT_CODE";
+  const sortDirection = parsedIntent.projectSortDirection ?? "ASC";
+
+  const filteredProjects = filterProjectsByStatus(projects, statusFilter);
+  const sortedProjects = sortProjects(filteredProjects, sortBy, sortDirection);
+
+  if (sortedProjects.length === 0) {
+    await replyAndRemember(
+      message,
+      `I found ${projects.length} project${projects.length === 1 ? "" : "s"} in TRS, but none matched the ${statusFilter.toLowerCase()} filter.`
+    );
+    return;
+  }
+
+  const lines = sortedProjects.map((project) => {
+    const createdDate = formatProjectDate(project.createdAt);
+    const status = project.active ? "ACTIVE" : "INACTIVE";
+    const name = project.projectName.length > 36
+      ? `${project.projectName.slice(0, 33)}...`
       : project.projectName;
 
-    const status = project.active ? "ACTIVE" : "INACTIVE";
-
-    return `${String(project.id).padEnd(3)} | ${project.projectCode.padEnd(8)} | ${status.padEnd(8)} | ${name}`;
+    return `${String(project.id).padEnd(3)} | ${project.projectCode.padEnd(8)} | ${createdDate.padEnd(10)} | ${status.padEnd(8)} | ${name}`;
   });
 
   await replyAndRemember(
     message,
     [
-      `TRS projects (${projects.length}):`,
+      buildProjectListIntro(sortedProjects.length, statusFilter, sortBy, sortDirection),
+      "",
       "```text",
-      "ID  | Code     | Status   | Name",
-      "----|----------|----------|-----------------------------",
+      "ID  | Code     | Created    | Status   | Name",
+      "----|----------|------------|----------|-------------------------------------",
       ...lines,
       "```"
     ].join("\n")
   );
 }
 
+function filterProjectsByStatus(projects: ProjectResponse[], statusFilter: AiIntentResult["projectStatusFilter"]): ProjectResponse[] {
+  if (statusFilter === "ALL") return projects;
+  if (statusFilter === "INACTIVE") return projects.filter((project) => !project.active);
+  return projects.filter((project) => project.active);
+}
+
+function sortProjects(
+  projects: ProjectResponse[],
+  sortBy: NonNullable<AiIntentResult["projectSortBy"]>,
+  sortDirection: NonNullable<AiIntentResult["projectSortDirection"]>
+): ProjectResponse[] {
+  const direction = sortDirection === "DESC" ? -1 : 1;
+
+  return [...projects].sort((first, second) => {
+    let comparison = 0;
+
+    if (sortBy === "CREATED_AT") {
+      comparison = getProjectCreatedTime(first) - getProjectCreatedTime(second);
+    } else if (sortBy === "PROJECT_NAME") {
+      comparison = first.projectName.localeCompare(second.projectName);
+    } else {
+      comparison = first.projectCode.localeCompare(second.projectCode);
+    }
+
+    return comparison * direction;
+  });
+}
+
+function buildProjectListIntro(
+  count: number,
+  statusFilter: AiIntentResult["projectStatusFilter"],
+  sortBy: NonNullable<AiIntentResult["projectSortBy"]>,
+  sortDirection: NonNullable<AiIntentResult["projectSortDirection"]>
+): string {
+  const statusLabel = statusFilter === "ALL"
+    ? "company"
+    : statusFilter === "INACTIVE"
+      ? "inactive company"
+      : "active company";
+
+  return `I found ${count} ${statusLabel} project${count === 1 ? "" : "s"} in TRS, sorted ${describeProjectSort(sortBy, sortDirection)}.`;
+}
+
+function describeProjectSort(
+  sortBy: NonNullable<AiIntentResult["projectSortBy"]>,
+  sortDirection: NonNullable<AiIntentResult["projectSortDirection"]>
+): string {
+  if (sortBy === "CREATED_AT") {
+    return sortDirection === "DESC" ? "newest first" : "oldest first";
+  }
+
+  if (sortBy === "PROJECT_NAME") {
+    return sortDirection === "DESC" ? "by project name Z to A" : "by project name A to Z";
+  }
+
+  return sortDirection === "DESC" ? "by project code descending" : "by project code";
+}
+
+function getProjectCreatedTime(project: ProjectResponse): number {
+  return project.createdAt ? new Date(project.createdAt).getTime() : 0;
+}
+
+function formatProjectDate(value?: string): string {
+  if (!value) return "-";
+  return value.slice(0, 10);
+}
 function normalizeSearchText(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "").trim();
 }
@@ -691,17 +880,38 @@ async function handleViewTeamUtilization(message: BotMessage, parsedIntent: AiIn
     return;
   }
 
-  const lines = report.map((row) =>
-    `- ${row.fullName}: ${row.totalHours}h / ${row.expectedHours}h (${row.utilizationPercent}%)`
-  );
+// UPDATED: Format utilization report as a Discord-friendly code-block table.
+const lines = report.map((row) => {
+  const employeeName = row.fullName.length > 15
+    ? `${row.fullName.slice(0, 12)}...`
+    : row.fullName;
 
-  await replyAndRemember(
-    message,
-    [
-      `Team utilization for ${dateRange.label}:`,
-      ...lines
-    ].join("\n")
-  );
+  const loggedHours = `${Number(row.totalHours)}h`;
+  const expectedHours = `${Number(row.expectedHours)}h`;
+  const utilization = `${Number(row.utilizationPercent)}%`;
+
+  return [
+    employeeName.padEnd(15),
+    loggedHours.padEnd(6),
+    expectedHours.padEnd(8),
+    utilization.padEnd(11)
+  ].join(" | ");
+});
+
+await replyAndRemember(
+  message,
+  [
+    `Team utilization for ${dateRange.label}:`,
+    "",
+    "```text",
+    "Employee        | Logged | Expected | Utilization",
+    "----------------|--------|----------|------------",
+    ...lines,
+    "```"
+  ].join("\n")
+);
+
+  
 }
 async function handleViewMissingEntries(message: BotMessage, parsedIntent: AiIntentResult): Promise<void> {
   const dateRange = parsedIntent.dateRange ?? parseDateRange(message.content.trim());
@@ -1077,7 +1287,7 @@ export async function executeAiAction(message: BotMessage, parsedIntent: AiInten
       return true;
 
     case "VIEW_ADMIN_PROJECTS":
-      await handleViewAdminProjects(message);
+      await handleViewAdminProjects(message, parsedIntent);
       return true;
 
     case "VIEW_ADMIN_ASSIGNMENTS":
@@ -1100,6 +1310,8 @@ export async function executeAiAction(message: BotMessage, parsedIntent: AiInten
       return false;
   }
 }
+
+
 
 
 
