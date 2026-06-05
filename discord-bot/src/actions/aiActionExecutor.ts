@@ -143,16 +143,35 @@ async function handleViewMyProjects(message: BotMessage, projectReference?: stri
     }
   }
 
-  const activeProjects = message.content.toLowerCase().includes("active")
+    const activeProjects = message.content.toLowerCase().includes("active")
     ? projects.filter((project) => project.active)
     : projects;
 
-  const reply = await writeProjectsResponse({
-    originalUserMessage: message.content.trim(),
-    projects: activeProjects
+  if (activeProjects.length === 0) {
+    await replyAndRemember(message, "You do not have any assigned projects in TRS right now.");
+    return;
+  }
+
+  const lines = activeProjects.map((project) => {
+    const code = project.projectCode.padEnd(8);
+    const status = (project.active ? "ACTIVE" : "INACTIVE").padEnd(8);
+    const name = shortenText(cleanDiscordTableText(project.projectName), 36);
+
+    return `${code} | ${status} | ${name}`;
   });
 
-  await replyAndRemember(message, reply);
+  await replyAndRemember(
+    message,
+    [
+      `I found ${activeProjects.length} assigned project${activeProjects.length === 1 ? "" : "s"} for you.`,
+      "",
+      "```text",
+      "Project  | Status   | Name",
+      "---------|----------|------------------------------------",
+      ...lines,
+      "```"
+    ].join("\n")
+  );
 }
 
 function cleanProjectReference(projectReference?: string): string | undefined {
@@ -880,8 +899,29 @@ async function handleViewTeamUtilization(message: BotMessage, parsedIntent: AiIn
     return;
   }
 
+  const filteredReport = parsedIntent.employeeReference
+    ? report.filter((row) =>
+        row.fullName.toLowerCase().includes(parsedIntent.employeeReference!.toLowerCase())
+      )
+    : report;
+
+  if (parsedIntent.employeeReference && filteredReport.length === 0) {
+    await replyAndRemember(
+      message,
+      [
+        `I could not find an employee matching "${parsedIntent.employeeReference}" in this utilization report.`,
+        "Available employees:",
+        ...report.map((row) => `- ${row.fullName}`)
+      ].join("\n")
+    );
+    return;
+  }
+
+
+
+
 // UPDATED: Format utilization report as a Discord-friendly code-block table.
-const lines = report.map((row) => {
+const lines = filteredReport.map((row) => {
   const employeeName = row.fullName.length > 15
     ? `${row.fullName.slice(0, 12)}...`
     : row.fullName;
@@ -901,7 +941,9 @@ const lines = report.map((row) => {
 await replyAndRemember(
   message,
   [
-    `Team utilization for ${dateRange.label}:`,
+    parsedIntent.employeeReference
+  ? `Utilization report for ${filteredReport[0].fullName} (${dateRange.label}):`
+  : `Team utilization for ${dateRange.label}:`,
     "",
     "```text",
     "Employee        | Logged | Expected | Utilization",
@@ -1137,13 +1179,26 @@ export async function handlePendingAiActionConfirmation(message: BotMessage): Pr
     return true;
   }
 
-  if (!["yes", "y", "yeah", "yep", "correct", "confirm", "sure", "yes dude"].includes(normalized)) {
-    return false;
+  if (["yes", "y", "yeah", "yep", "correct", "confirm", "sure", "yes dude"].includes(normalized)) {
+    clearPendingAiAction(message.author.id);
+    return executeAiAction(message, pendingAction);
   }
 
+  const completedAction: AiIntentResult = {
+    ...pendingAction,
+    dateRange: pendingAction.dateRange ?? parseDateRange(message.content.trim()),
+    needsClarification: false,
+    clarificationQuestion: undefined,
+    confidence: Math.max(pendingAction.confidence, 0.8)
+  };
+
   clearPendingAiAction(message.author.id);
-  return executeAiAction(message, pendingAction);
+  return executeAiAction(message, completedAction);
 }
+
+
+
+
 export async function handlePendingTimeEntryConfirmation(message: BotMessage): Promise<boolean> {
   const normalized = message.content.trim().toLowerCase();
   const pendingTimeEntry = getPendingTimeEntry(message.author.id);

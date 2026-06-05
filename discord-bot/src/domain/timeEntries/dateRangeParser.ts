@@ -137,6 +137,28 @@ export function parseDateRange(message: string): DateRangeResult {
     };
   }
 
+  const hasDayMonthPattern = /\b\d{1,2}(?:st|nd|rd|th)?\s+(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sep|sept|october|oct|november|nov|december|dec)\b/.test(normalized);
+
+  const singleMonth = !hasDayMonthPattern
+    ? normalized.match(
+        /(?:^|\s)(?:for\s+)?(?:the\s+)?(?:month\s+of\s+)?(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sep|sept|october|oct|november|nov|december|dec)(?:\s+(\d{4}))?(?:\s|$)/
+      )
+    : null;
+
+  if (singleMonth) {
+    const monthIndex = monthNameToNumber[singleMonth[1]];
+    const year = Number(singleMonth[2] ?? today.getFullYear());
+
+    if (monthIndex !== undefined) {
+      return {
+        startDate: formatDate(startOfMonth(year, monthIndex)),
+        endDate: formatDate(endOfMonth(year, monthIndex)),
+        label: `${singleMonth[1]} ${year}`
+      };
+    }
+  }
+
+  
   return {
     startDate: formatDate(today),
     endDate: formatDate(today),

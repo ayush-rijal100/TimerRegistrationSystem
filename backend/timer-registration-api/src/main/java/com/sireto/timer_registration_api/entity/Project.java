@@ -32,15 +32,15 @@ public class Project {
     private LocalDateTime updatedAt;
 
     @PrePersist
-public void onCreate() {
-    LocalDateTime now = LocalDateTime.now();
-    this.createdAt = now;
-    this.updatedAt = now;
-}
+    public void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        this.createdAt = now;
+        this.updatedAt = now;
+    }
 
-@PreUpdate
-public void onUpdate() {
-    this.updatedAt = LocalDateTime.now();
-}
+    @PreUpdate
+    public void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 
 }

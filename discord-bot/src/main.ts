@@ -256,6 +256,9 @@ client.on("messageCreate", async (message) => {
     return;
   }
 
+
+  //generic AI chat fallback if no other handlers or safety patterns matched. This allows for open-ended conversation and also lets the AI ask the user for clarification if it couldn't confidently identify a specific intent i.e for unkown intent.
+  //so its not an intent parser
   try {
     const aiReply = await withTyping(message, () => handleAiMessage(message.author.id, content));
     await message.reply(aiReply);

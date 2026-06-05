@@ -48,6 +48,8 @@ export function registerProjectTools(server: McpServer): void {
       title: "Prepare Create TRS Project Draft",
       description: "Admin-only tool that prepares and validates a new TRS project draft without saving it. Use this before create_project when an admin asks to create/add/register a new project.",
       inputSchema: {
+        //By default, in Zod, when  we y z.string(), it automatically means the field is strictly required.
+        // regex here: uppercase A–Z, lowercase a–z, digits 0–9, dash (-), underscore (_), and dot (.). No spaces or other symbols allowed.
         projectCode: z.string().min(1).max(30).regex(/^[A-Za-z0-9\-_.]+$/).describe("Unique project code, max 30 chars. Letters, numbers, dash, underscore, and dot only."),
         projectName: z.string().min(2).max(120).describe("Project name, 2 to 120 characters.")
       }
@@ -69,6 +71,13 @@ export function registerProjectTools(server: McpServer): void {
     }
   );
 
+
+
+
+
+
+
+  
   server.registerTool(
     "create_project",
     {
